@@ -1,57 +1,29 @@
-$(document).ready(function() {
+window.onload = function() {
 
-  var c = document.getElementById("canvas1");
-  var ctx = c.getContext("2d");
-  var Xcor = c.width / 2;
-  var Ycor = (c.height / 3) + 50;   // change this back
-  ctx.translate(Xcor, Ycor);
-  var rot = 0;
+var canvas = document.getElementById('canvas');
+var ctx = canvas.getContext('2d');
+var xCoord = canvas.width / 2;
+var yCoord = canvas.height / 2;
+// for "sierpinski": bias x = -165, bias y = -130
+var originBiasX = 0;
+var originBiasY = 0;
+ctx.translate(xCoord + originBiasX, yCoord + originBiasY);
+var rot = 0;
 
-/*  L-SYSTEM
- *  Constructor should take an options object as argument with:
- *  axiom : String
- *  rule : String
- *  generations : Number
- *  angle : Number
- *  length : Number
- *  [optional] :
- *  strokeColor : Array (4-element array : R | G | B | A )
- */
-
-function Lsys(options) {
-
+function Lsys ( options ) {
   for (var k in options) this[k] = options[k];
 
-  if (typeof(this.axiom) == undefined) {
-    this.axiom = "default axiom.";     // CHANGEME
-  }
-  if (typeof(this.rule) == undefined) {
-    this.rule = "default rule.";     // CHANGEME
-  }
-  if (typeof(this.generations) == undefined) {
-    this.generations = "default generations.";
-  }
-  if (typeof(this.angle) == undefined) {
-    this.angle = 60;
-  }
-  if (typeof(strokeColor) == undefined) {
-    this.strokeColor = [140, 240, 140, 0.8];     // CHANGEME
-  }
-
-  this.currentString = this.axiom
+  this.currentString = this.axiom;
   this.index = 0;
-
-  console.log(JSON.stringify(this))
-
-  //ctx.strokeStyle = 'white';
-  ctx.strokeStyle = 'rgba(65, 226, 244, 0.012);'
-
+  ctx.strokeStyle = this['strokeColor'];
 }
 
-Lsys.prototype.recursiveSolver = function() {
+Lsys.prototype.recursiveSolver = function ( ) {
+  var fRegex = /F/g;
+  var gRegex = /G/g;
 
-  if (this.generations > 0) { 
-    this.currentString = this.currentString.replace("F", this.rule);
+  if ( this.generations > 0 ) {
+    this.currentString = this.currentString.replace(fRegex, this.rule);
     console.log(this.currentString);
     this.generations -= 1;
     this.recursiveSolver();
@@ -59,93 +31,82 @@ Lsys.prototype.recursiveSolver = function() {
   this.turtle(this.currentString);
 }
 
-Lsys.prototype.turtle = function(string) {
-  for(var idx=0; idx < string.length; idx++) {
-    var str = string.charAt(idx);
-    switch(str) {
-      case "F":
-        FORWARD(this.length);
-        console.log(Xcor, Ycor, rot);
+Lsys.prototype.turtle = function ( string ) {
+  for (var i=0; i < string.length; i++ ) {
+    var ch = string.charAt(i);
+    switch ( ch ) {
+      case 'F':
+        forward(this.length);
         break;
-      case "X": 
+      case '-':
+        left(this.angle);
         break;
-      case "-":
-        LEFT(this.angle);
-        break;
-      case "+":
-        RIGHT(this.angle);
+      case '+':
+        right(this.angle);
         break;
       default:
-        return new Error("character not found in grammar.")
+        return new Error('character not found in grammar.');
         break;
     }
   }
 }
 
-var Lsystems = {
-  houdini3 : {
-    axiom : "F-F-F-F-F-F",
-    rule  : "F-F+F-F-F+F",
-    generations : 128,
-    angle : 60.1,
-    length : 180,
-    strokeColor : [160, 140, 180, 0.8], 
-    backgroundColor : [18, 18, 18]
-  }
-}
-
-// "private" / helper functions
-
-function FORWARD(len) { 
+function forward ( len ) {
   ctx.beginPath();
   ctx.moveTo(0, 0);
   ctx.lineTo(0, - len*2);
   ctx.translate(0, -len);
   ctx.stroke();
-  Xcor += len * Math.cos(BEARING() * Math.PI / 180);
-  Ycor += len * Math.sin(BEARING() * Math.PI / 180);
+  xCoord += len * Math.cos(bearing() * Math.PI / 180);
+  yCoord += len * Math.sin(bearing() * Math.PI / 180);
 }
 
-function BEARING() { 
+function bearing () {
   return rot + 90;
 }
 
-function RIGHT(ang) { 
-  rot -= ang;
+function left ( angle ) {
+  rot += angle;
   rot = rot % 360;
-  ctx.rotate(ang * Math.PI / 90.1);
+  ctx.rotate(angle * Math.PI / 180);
 }
 
-function LEFT(ang) { 
-  RIGHT( - ang )
+function right ( angle ) {
+  left(-angle);
 }
 
-function SQUARE() { 
-  FORWARD(40);
-  RIGHT(90);
-  FORWARD(40);
-  RIGHT(90);
-  FORWARD(40);
-  RIGHT(90);
-  FORWARD(40);
-  RIGHT(90);
-}
-
-function OUT_OF_BOUNDS() { 
-  if (Xcor < 0 || Xcor >= c.width) { 
-    return true;
-  } else if (Ycor < 0 || Ycor >= c.height) { 
-    return true;
-  } else {
-    return false;
-  }
-}
-
-function RESET() { 
+function reset () {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
-var l = new Lsys(Lsystems.houdini3);
+var sierpinski = {
+  axiom : "F+F+F+F+F+F+F+F+F+F+F+",
+  rule : "F--F++F-F-F-F-F++F--F",
+  generations : 4,
+  angle : 15,
+  length: 10,
+  strokeColor : 'rgba(160, 140, 180, 0.07)'
+}
+
+var pattern2 = {
+  axiom : "F--F+++F--F+++F--F+++F--F+++F--F+++F--F+++",
+  rule : "F+F+F++F+F+F++",
+  generations : 5,
+  angle : 30,
+  length : 50,
+  strokeColor : 'rgba(140, 25, 223, 0.02)'
+}
+
+var pattern3 = {
+  axiom : "F-F+++F-F+++F-F+++F-F+++F-F+++F-F+++F",
+  rule : "F+F+F++F+F+F++F+F+F++F+",
+  generations : 5,
+  angle : 30,
+  length : 50,
+  strokeColor : 'rgba(140, 25, 223, 0.01)'
+}
+
+var l = new Lsys(pattern2);
 l.recursiveSolver();
 
-})
+};
